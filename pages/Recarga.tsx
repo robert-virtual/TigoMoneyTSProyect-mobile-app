@@ -1,30 +1,31 @@
 import React, {useState} from 'react';
-import {Button, PermissionsAndroid, StyleSheet, Text, View} from 'react-native';
+import {Button, StyleSheet, Text, View} from 'react-native';
 import {sendPhoneCall} from 'react-native-send-intent';
+import {Alert} from '../components/Alert';
+import {Box} from '../components/Box';
 import {Input} from '../components/Input';
+import {Middle} from '../components/Middle';
+import {Transaccion} from '../Routes/types';
+import {phonePemimssion, saveTrans} from './Functions';
 interface Props {}
 
 export const Recarga: React.FC<Props> = () => {
+  // transaccion props
   const [phone, setPhone] = useState('');
   const [monto, setMonto] = useState<string>('25');
   const [identidad, setIdentidad] = useState<string>('');
-  const [enviado, setEnviado] = useState(false);
-  const [phoneError, setPhoneError] = useState(false);
-  const [dniError, setDniError] = useState(false);
-  const [montoError, setMontoError] = useState(false);
+  // transaccion props
+
+  const [showAlert, setShowAlert] = useState(false);
+  const [done, setDone] = useState<boolean>(true);
+  // errores
+  const [phoneError, setPhoneError] = useState(true);
+  const [dniError, setDniError] = useState(true);
+  const [montoError, setMontoError] = useState(true);
+  //
   const call = async () => {
-    const granted = await PermissionsAndroid.request(
-      PermissionsAndroid.PERMISSIONS.CALL_PHONE,
-      {
-        title: 'Permiso para realizar llamadas telefonicas',
-        message:
-          'Se solicita permiso para interactuar con la red movil del celular',
-        buttonNeutral: 'Preguntar luego',
-        buttonNegative: 'No',
-        buttonPositive: 'Si',
-      },
-    );
-    if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+    const granted = await phonePemimssion();
+    if (granted) {
       setPhoneError(phone.length < 8);
       setDniError(identidad.length < 13);
       setMontoError(monto.length < 2);
@@ -33,28 +34,35 @@ export const Recarga: React.FC<Props> = () => {
       }
       sendPhoneCall(`*555*2*1*${phone}*${identidad}*${monto}#`, false);
     }
-    setEnviado(true);
+    setShowAlert(true);
   };
 
-  if (enviado) {
+  if (showAlert) {
     return (
-      <View style={styles.alert}>
-        <Text style={styles.alertMsg}>Se completo la transaccion?</Text>
-        <View style={styles.btns}>
-          <Button onPress={() => setEnviado(false)} title="No..." />
-          <Button onPress={() => setEnviado(false)} title="Si..." />
-        </View>
-      </View>
+      <Alert
+        setOption={opt => {
+          setDone(opt);
+          setShowAlert(false);
+          saveTrans(
+            new Transaccion({
+              type: 'Recarga',
+              receptor: {Tel: phone, DNI: identidad},
+            }),
+          );
+        }}
+      />
     );
   }
 
   return (
-    <View style={styles.main}>
+    <Box>
       <View style={styles.header}>
-        <Text style={styles.title}>Recarga</Text>
         <Text style={styles.title}>Envio con identiad de receptor</Text>
+        {!done && (
+          <Text style={styles.msg}>La ultima transaccion no se completo</Text>
+        )}
       </View>
-      <View style={styles.middle}>
+      <Middle>
         <Input
           onChangeText={setPhone}
           value={phone}
@@ -71,7 +79,8 @@ export const Recarga: React.FC<Props> = () => {
           error={dniError}
           maxLength={13}
           keyboardType="numeric"
-          label="Numero de identidad"
+          placeholder="Numero de identidad"
+          label="Identidad Receptor (DNI)"
         />
         <Input
           onChangeText={setMonto}
@@ -82,46 +91,28 @@ export const Recarga: React.FC<Props> = () => {
           keyboardType="numeric"
           label="Monto"
         />
-      </View>
+      </Middle>
       {/* <Text>{`*555*2*1*${phone}*${identidad}*${monto}#`}</Text> */}
 
       <View style={styles.btns}>
         <Button onPress={() => call()} title="Realizar" />
       </View>
-    </View>
+    </Box>
   );
 };
 
 const styles = StyleSheet.create({
-  main: {
-    flex: 1,
-    display: 'flex',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-  },
   title: {fontSize: 25},
   header: {display: 'flex', alignItems: 'center'},
-  middle: {
-    display: 'flex',
-    width: '100%',
-    padding: 10,
-    alignItems: 'center',
-  },
   btns: {
     display: 'flex',
     flexDirection: 'row',
     justifyContent: 'space-around',
     width: '100%',
   },
-  alert: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    padding: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  alertMsg: {
-    marginBottom: 20,
+  msg: {
+    fontSize: 20,
+    color: 'red',
+    textAlign: 'center',
   },
 });

@@ -12,6 +12,7 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 
 interface Props {
   label: string;
+  placeholder?: string;
   keyboardType: KeyboardTypeOptions;
   value: any;
   error?: boolean;
@@ -27,18 +28,19 @@ export const Input: React.FC<Props> = ({
   error,
   maxLength,
   clearInput,
+  placeholder,
 }) => {
   return (
     <View style={styles.box}>
       <Text style={error ? styles.labelError : styles.label}>{label}</Text>
       <View style={styles.inputs}>
         <TextInput
+          style={styles.input}
           maxLength={maxLength ? maxLength : 255}
           value={value}
           onChangeText={onChangeText}
-          style={styles.input}
           keyboardType={keyboardType}
-          placeholder={label}
+          placeholder={placeholder || label}
         />
         <TouchableOpacity onPress={clearInput}>
           <Icon name="times" size={20} color="#222" />
@@ -61,6 +63,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 10,
     fontSize: 20,
+    borderBottomWidth: 1,
+    flexGrow: 1,
+    borderBottomColor: 'rgb(0, 122, 255)',
   },
   labelError: {
     color: 'red',
